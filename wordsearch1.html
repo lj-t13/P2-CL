@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2 华文拼音寻字游戏 (Chinese Word Search)</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Microsoft YaHei', sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+            padding: 10px;
+            color: #333;
+        }
+        h1 {
+            color: #ff6b6b;
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+        }
+        p {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #3f51b5;
+            margin-bottom: 10px;
+        }
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .grid-section {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 44px);
+            grid-template-rows: repeat(10, 44px);
+            gap: 5px;
+            justify-content: center;
+        }
+        .cell {
+            width: 44px;
+            height: 44px;
+            background-color: #e3f2fd;
+            border: 2px solid #90caf9;
+            border-radius: 8px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .cell:hover {
+            background-color: #bbdefb;
+            transform: scale(1.05);
+        }
+        .cell.selected {
+            background-color: #ffcc80;
+            border-color: #ffa726;
+            color: #d84315;
+        }
+        .cell.found {
+            background-color: #a5d6a7;
+            border-color: #66bb6a;
+            color: #1b5e20;
+            cursor: default;
+        }
+        
+        /* Success Animation */
+        @keyframes bounceSuccess {
+            0% { transform: scale(1); background-color: #ffeb3b; }
+            50% { transform: scale(1.25); background-color: #ff9800; }
+            100% { transform: scale(1); background-color: #a5d6a7; }
+        }
+        .cell.success-anim {
+            animation: bounceSuccess 0.5s ease;
+        }
+
+        .word-list-section {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 420px;
+            text-align: left;
+        }
+        .word-list-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #3f51b5;
+            text-align: center;
+            font-size: 1.15rem;
+        }
+        /* 2-Column layout so all 15 items fit visibly without scrolling */
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        li {
+            padding: 5px 8px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        li.found {
+            text-decoration: line-through;
+            color: #888;
+            background: #e8f5e9;
+        }
+        .pinyin {
+            font-weight: bold;
+            color: #d32f2f;
+        }
+        .source {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        .btn-container {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 15px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #43a047;
+        }
+        .btn-reset {
+            background-color: #ff7043;
+        }
+        .btn-reset:hover {
+            background-color: #f4511e;
+        }
+        .btn-print {
+            background-color: #2196f3;
+        }
+        .btn-print:hover {
+            background-color: #1976d2;
+        }
+        #message {
+            margin-top: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #e91e63;
+            height: 25px;
+        }
+
+        /* Printable Styles Styling */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+                padding: 0;
+            }
+            .btn-container, .stats-bar, #message, p {
+                display: none !important;
+            }
+            .grid-section, .word-list-section {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }
+            .game-container {
+                gap: 40px;
+                justify-content: center;
+            }
+            .cell {
+                background-color: white !important;
+                border: 2px solid #000 !important;
+                color: black !important;
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 1.2rem !important;
+            }
+            .grid {
+                grid-template-columns: repeat(10, 40px);
+                grid-template-rows: repeat(10, 40px);
+            }
+            ul {
+                grid-template-columns: 1fr 1fr;
+            }
+            li {
+                background: none !important;
+                border-bottom: 1px dashed #ccc;
+                font-size: 0.95rem;
+                padding: 5px 0;
+            }
+            h1::after {
+                content: " (学生姓名 Name: ______________)";
+                display: block;
+                font-size: 1.1rem;
+                margin-top: 10px;
+                font-weight: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌟 P2 华文拼音寻字游戏 🌟</h1>
+    <p>根据拼音提示在网格找出汉字，比比看谁用时最少！</p>
+
+    <div class="stats-bar">
+        <div>⏱️ 时间 (Time): <span id="timer">00:00</span></div>
+        <div>🎯 已找到 (Found): <span id="score">0</span> / 15</div>
+    </div>
+
+    <div class="game-container">
+        <!-- Grid Board (10x10) -->
+        <div class="grid-section">
+            <div id="grid" class="grid"></div>
+            <div id="message"></div>
+            <div class="btn-container">
+                <button class="btn" onclick="clearSelection()">清除选择 (Clear)</button>
+                <button class="btn btn-reset" onclick="initGame()">重新洗牌 (New Puzzle)</button>
+                <button class="btn btn-print" onclick="window.print()">🖨️ 打印工作纸 (Print Worksheet)</button>
+            </div>
+        </div>
+
+        <!-- Clue List (2-Column view, no scrolling needed) -->
+        <div class="word-list-section">
+            <h3>拼音提示表 (Pinyin Clues)</h3>
+            <ul id="wordList"></ul>
+        </div>
+    </div>
+
+<script>
+    const wordsData = [
+        { word: "永远", pinyin: "yǒng yuǎn", source: "2B" },
+        { word: "争吵", pinyin: "zhēng chǎo", source: "2B" },
+        { word: "容易", pinyin: "róng yì", source: "2B" },
+        { word: "黄瓜", pinyin: "huáng guā", source: "2B" },
+        { word: "萝卜", pinyin: "luó bo", source: "2B" },
+        { word: "故事", pinyin: "gù shi", source: "2B" },
+        { word: "附近", pinyin: "fù jìn", source: "2B" },
+        { word: "夜市", pinyin: "yè shì", source: "2B" },
+        { word: "炸鸡", pinyin: "zhá jī", source: "2B" },
+        { word: "借书", pinyin: "jiè shū", source: "2B" },
+        { word: "热闹", pinyin: "rè nao", source: "P1" },
+        { word: "安静", pinyin: "ān jìng", source: "P1" },
+        { word: "打扫", pinyin: "dǎ sǎo", source: "P1" },
+        { word: "眼睛", pinyin: "yǎn jing", source: "P1" },
+        { word: "游戏", pinyin: "yóu xì", source: "P1" }
+    ];
+
+    const GRID_SIZE = 10;
+    let grid = [];
+    let placedWords = [];
+    let selectedCells = [];
+    let foundWords = [];
+    
+    let secondsElapsed = 0;
+    let timerInterval = null;
+    let gameActive = false;
+
+    const randomChars = "的了一是不有很人我他在个上们来到时地为子中你说生国年就那和她都出小多方如把得于果用下自之会学加家点正看起发民长进通用本美小快学爱读书写字跑跳";
+
+    function getRandomChar() {
+        return randomChars[Math.floor(Math.random() * randomChars.length)];
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        secondsElapsed = 0;
+        gameActive = true;
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            if (gameActive) {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+        const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+        document.getElementById('timer').textContent = `${mins}:${secs}`;
+    }
+
+    function initGame() {
+        foundWords = [];
+        selectedCells = [];
+        document.getElementById('message').textContent = '';
+        document.getElementById('score').textContent = '0';
+        
+        grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(''));
+        placedWords = [];
+
+        let sortedWords = [...wordsData].sort((a, b) => b.word.length - a.word.length);
+
+        const directions = [
+            { r: 0, c: 1 },   // Right
+            { r: 1, c: 0 },   // Down
+            { r: 1, c: 1 },   // Diagonal down-right
+            { r: -1, c: 1 }   // Diagonal up-right
+        ];
+
+        sortedWords.forEach(item => {
+            let placed = false;
+            let attempts = 0;
+            while (!placed && attempts < 100) {
+                attempts++;
+                let dir = directions[Math.floor(Math.random() * directions.length)];
+                let row = Math.floor(Math.random() * GRID_SIZE);
+                let col = Math.floor(Math.random() * GRID_SIZE);
+
+                let wordLen = item.word.length;
+                let endRow = row + dir.r * (wordLen - 1);
+                let endCol = col + dir.c * (wordLen - 1);
+
+                if (endRow >= 0 && endRow < GRID_SIZE && endCol >= 0 && endCol < GRID_SIZE) {
+                    let canPlace = true;
+                    for (let i = 0; i < wordLen; i++) {
+                        let r = row + dir.r * i;
+                        let c = col + dir.c * i;
+                        if (grid[r][c] !== '' && grid[r][c] !== item.word[i]) {
+                            canPlace = false;
+                            break;
+                        }
+                    }
+
+                    if (canPlace) {
+                        let coords = [];
+                        for (let i = 0; i < wordLen; i++) {
+                            let r = row + dir.r * i;
+                            let c = col + dir.c * i;
+                            grid[r][c] = item.word[i];
+                            coords.push({ r, c });
+                        }
+                        placedWords.push({ word: item.word, pinyin: item.pinyin, coords: coords });
+                        placed = true;
+                    }
+                }
+            }
+        });
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (grid[r][c] === '') {
+                    grid[r][c] = getRandomChar();
+                }
+            }
+        }
+
+        renderGrid();
+        renderWordList();
+        startTimer();
+    }
+
+    function renderGrid() {
+        const gridElement = document.getElementById('grid');
+        gridElement.innerHTML = '';
+        
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                cell.textContent = grid[r][c];
+                cell.addEventListener('click', () => selectCell(cell, r, c));
+                gridElement.appendChild(cell);
+            }
+        }
+    }
+
+    function renderWordList() {
+        const listElement = document.getElementById('wordList');
+        listElement.innerHTML = '';
+        wordsData.forEach((item, index) => {
+            const li = document.createElement('li');
+            const isFound = foundWords.includes(item.word);
+            if (isFound) {
+                li.classList.add('found');
+            }
+            li.innerHTML = `<span>${index + 1}. <span class="pinyin">${item.pinyin}</span></span> <span class="source">[${item.source}]</span>`;
+            listElement.appendChild(li);
+        });
+        document.getElementById('score').textContent = foundWords.length;
+    }
+
+    function selectCell(cell, r, c) {
+        if (!gameActive || cell.classList.contains('found')) return;
+
+        if (cell.classList.contains('selected')) {
+            cell.classList.remove('selected');
+            selectedCells = selectedCells.filter(item => !(item.row === r && item.col === c));
+            return;
+        }
+
+        cell.classList.add('selected');
+        selectedCells.push({ row: r, col: c, char: grid[r][c] });
+
+        if (selectedCells.length === 2) {
+            checkSelectedWord();
+        }
+    }
+
+    function checkSelectedWord() {
+        const msgElement = document.getElementById('message');
+        
+        let matchedWordObj = placedWords.find(item => {
+            if (foundWords.includes(item.word)) return false;
+            let itemCoords = item.coords;
+            if (itemCoords.length !== selectedCells.length) return false;
+
+            let forwardMatch = itemCoords.every((coord, idx) => coord.r === selectedCells[idx].row && coord.c === selectedCells[idx].col);
+            let backwardMatch = itemCoords.slice().reverse().every((coord, idx) => coord.r === selectedCells[idx].row && coord.c === selectedCells[idx].col);
+
+            return forwardMatch || backwardMatch;
+        });
+
+        if (matchedWordObj) {
+            foundWords.push(matchedWordObj.word);
+            
+            selectedCells.forEach(item => {
+                let cellEl = document.querySelector(`[data-row='${item.row}'][data-col='${item.col}']`);
+                cellEl.classList.remove('selected');
+                cellEl.classList.add('success-anim');
+                setTimeout(() => {
+                    cellEl.classList.remove('success-anim');
+                    cellEl.classList.add('found');
+                }, 500);
+            });
+
+            msgElement.style.color = '#4caf50';
+            msgElement.textContent = `太棒了！找到了正确词语 🎉`;
+            selectedCells = [];
+            renderWordList();
+
+            if (foundWords.length === wordsData.length) {
+                gameActive = false;
+                clearInterval(timerInterval);
+                msgElement.textContent = `🎊 恭喜通关！总用时: ${document.getElementById('timer').textContent} 🎊`;
+            }
+        } else {
+            msgElement.style.color = '#e91e63';
+            msgElement.textContent = '不对哦，再试一次！';
+            setTimeout(() => {
+                selectedCells.forEach(item => {
+                    let cellEl = document.querySelector(`[data-row='${item.row}'][data-col='${item.col}']`);
+                    if(cellEl) cellEl.classList.remove('selected');
+                });
+                selectedCells = [];
+                msgElement.textContent = '';
+            }, 800);
+        }
+    }
+
+    function clearSelection() {
+        selectedCells.forEach(item => {
+            let cellEl = document.querySelector(`[data-row='${item.row}'][data-col='${item.col}']`);
+            if(cellEl) cellEl.classList.remove('selected');
+        });
+        selectedCells = [];
+        document.getElementById('message').textContent = '';
+    }
+
+    window.onload = initGame;
+</script>
+
+</body>
+</html>
